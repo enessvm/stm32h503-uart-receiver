@@ -3,68 +3,85 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include <stddef.h>
-#include <assert.h>
 
-RingBuffer *rb_init(RingBuffer *rb)
+RingBuffer *rb_init(RingBuffer *rb, size_t capacity, uint8_t *buffer)
 {
+    // capacity should be power of two for easy wrap around
+    if (capacity == 0 || ((capacity & (capacity - 1)) != 0))
+    {
+        return NULL;
+    }
+
     rb->read_idx = 0;
     rb->write_idx = 0;
-    rb->size = 0;
+    rb->count = 0;
+    rb->capacity = capacity;
+    rb->buffer = buffer;
     return rb;
 }
 
-void rb_write(RingBuffer *rb, uint8_t item)
+bool rb_write(RingBuffer *rb, uint8_t data)
 {
-    rb->rx_buffer[rb->write_idx++] = item;
-
-    if (rb->write_idx >= BUFFER_SIZE)
+    if (rb->count >= rb->capacity)
     {
-        rb->write_idx = 0;
+        return false;
     }
 
-    rb->size++;
+    rb->buffer[rb->write_idx++] = data;
+
+    // wrap around if index reaches to end
+    rb->write_idx = rb->write_idx & (rb->capacity - 1);
+
+    rb->count++;
+    return true;
 }
 
-uint8_t rb_read(RingBuffer *rb)
+bool rb_read(RingBuffer *rb, uint8_t *data)
 {
-    assert(rb->size > 0 && "There is no data to read!");
-
-    uint8_t ret = rb->rx_buffer[rb->read_idx++];
-
-    if (rb->read_idx >= BUFFER_SIZE)
+    if (rb->count == 0)
     {
-        rb->read_idx = 0;
+        return false;
     }
 
-    rb->size--;
-    return ret;
+    *data = rb->buffer[rb->read_idx++];
+
+    // wrap around if index reaches to end
+    rb->read_idx = rb->read_idx & (rb->capacity - 1);
+
+    rb->count--;
+    return true;
 }
 
-uint8_t peek(const RingBuffer *rb)
+bool rb_peek(const RingBuffer *rb, uint8_t *data)
 {
-    assert(rb->size > 0 && "There is no data to read!");
+    if (rb->count == 0)
+    {
+        return false;
+    }
 
-    return rb->rx_buffer[rb->read_idx];
+    *data = rb->buffer[rb->read_idx];
+
+    return true;
 }
 
-size_t rb_size(const RingBuffer *rb)
+size_t rb_count(const RingBuffer *rb)
 {
-    return rb->size;
+    return rb->count;
 }
 
 bool rb_is_full(const RingBuffer *rb)
 {
-    return rb->size == BUFFER_SIZE;
+    return rb->count == rb->capacity;
 }
 
 bool rb_is_empty(const RingBuffer *rb)
 {
-    return rb->size == 0;
+    return rb->count == 0;
 }
 
 void rb_reset(RingBuffer *rb)
 {
     rb->write_idx = 0;
     rb->read_idx = 0;
-    rb->size = 0;
+    rb->count = 0;
 }
