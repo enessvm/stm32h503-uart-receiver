@@ -1,5 +1,5 @@
-#ifndef RING_BUFFER_H_
-#define RING_BUFFER_H_
+#ifndef RING_BUFFER_H
+#define RING_BUFFER_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -23,4 +23,4 @@ bool rb_is_full(const RingBuffer *rb);
 bool rb_is_empty(const RingBuffer *rb);
 void rb_reset(RingBuffer *rb);
 
-#endif // RING_BUFFER_H_
+#endif // RING_BUFFER_H
